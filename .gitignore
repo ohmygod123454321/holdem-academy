@@ -1,0 +1,10 @@
+# Netlify CLI 本機連結資訊
+.netlify/
+
+# 相依套件（本專案走 CDN，理論上不會有；保險起見忽略）
+node_modules/
+
+# OS / 編輯器雜物
+Thumbs.db
+.DS_Store
+.vscode/

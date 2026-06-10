@@ -1,0 +1,5 @@
+# 純前端、CDN 即時轉譯 JSX，無 build step。
+# Netlify 只需把整個資料夾原樣當靜態網站發佈。
+[build]
+  publish = "."
+  command = ""
