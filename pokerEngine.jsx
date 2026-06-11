@@ -354,19 +354,28 @@ function applyAction(state, idx, action) {
     seat.lastAction = c === 0 ? "Check" : ("Call " + c);
   } else if (action.type === "raise") {
     // amount = total target (streetBet desired). Could also be 'bet' first action.
-    let target = action.amount;
+    let target = action.amount || 0;
     target = Math.max(target, state.currentBet + state.minRaise);
     // can't exceed stack+streetBet (allin)
     target = Math.min(target, seat.streetBet + seat.stack);
     const add = target - seat.streetBet;
     postBet(state, idx, add, "raise");
-    state.minRaise = target - state.currentBet;
-    state.currentBet = target;
-    state.lastRaiser = idx;
-    seat.lastAction = (state.currentBet === target && toCall === 0 ? "Bet " : "Raise ") + target;
-    // reset actedThisStreet for others (they need to respond)
-    for (let i = 0; i < state.seats.length; i++) {
-      if (i !== idx) state.seats[i].actedThisStreet = false;
+    if (target > state.currentBet) {
+      // a genuine raise — increases the bet and reopens action for everyone else
+      state.minRaise = target - state.currentBet;
+      state.currentBet = target;
+      state.lastRaiser = idx;
+      seat.lastAction = (toCall === 0 ? "Bet " : "Raise ") + target;
+      // reset actedThisStreet for others (they need to respond)
+      for (let i = 0; i < state.seats.length; i++) {
+        if (i !== idx) state.seats[i].actedThisStreet = false;
+      }
+    } else {
+      // all-in for LESS than the current bet — this is a call, not a raise.
+      // Must NOT lower state.currentBet here, otherwise players who already put in
+      // more can never satisfy streetBet === currentBet and the street never
+      // completes → the hand loops forever (screen "freezes" on the green table).
+      seat.lastAction = add > 0 ? ("Call " + add + (seat.allin ? " (all-in)" : "")) : "Check";
     }
   }
   seat.actedThisStreet = true;
