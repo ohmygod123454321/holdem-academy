@@ -278,7 +278,7 @@ function PageTable() {
         <BustedBanner tourney={tourney} humanIdx={humanIdx} />
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 20 }}>
+      <div className="poker-grid">
         <div style={{ minWidth: 0 }}>
           <TableView game={game} labels={labels} showAll={showCards} humanIdx={humanIdx} aiThinking={aiThinking} />
 
@@ -318,6 +318,15 @@ function PageTable() {
         </div>
 
         <SidePanel game={game} labels={labels} human={human} humanIdx={humanIdx} />
+
+        {/* far-right GTO range column (wide screens only; falls back to inline
+            inside the side panel on narrower screens) */}
+        <div className="gto-col-wide">
+          <GtoRangeChart
+            defaultPos={labels[humanIdx] || "BTN"}
+            holeCode={human && human.hole ? PE.handCode(human.hole[0], human.hole[1]) : null}
+          />
+        </div>
       </div>
     </div>
   );
@@ -815,10 +824,12 @@ function SidePanel({ game, labels, human, humanIdx }) {
         <GtoCoach game={game} humanIdx={humanIdx} eq={eq} />
       )}
 
-      <GtoRangeChart
-        defaultPos={labels[humanIdx] || "BTN"}
-        holeCode={human && human.hole ? PE.handCode(human.hole[0], human.hole[1]) : null}
-      />
+      <div className="gto-inline">
+        <GtoRangeChart
+          defaultPos={labels[humanIdx] || "BTN"}
+          holeCode={human && human.hole ? PE.handCode(human.hole[0], human.hole[1]) : null}
+        />
+      </div>
 
       <div className="card">
         <div className="card-eyebrow mb-8">行動紀錄</div>

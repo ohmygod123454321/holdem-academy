@@ -561,3 +561,20 @@ table.dt td.num { font-family: var(--mono); }
 .gto-legend i.gto-raise { background: var(--gold); }
 .gto-legend i.gto-mixed { background: color-mix(in oklab, var(--gold) 42%, transparent); }
 .gto-legend i.gto-fold  { background: rgba(255,255,255,0.10); }
+
+/* ---- Practice-table layout: table | side panel | (wide) GTO range ---- */
+.poker-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+}
+.gto-col-wide { display: none; }   /* hidden until there is room on the right */
+
+/* Wide screens: break out of the 1280px cap and dock the GTO range chart
+   into the empty space at the far right as a real third column. */
+@media (min-width: 1500px) {
+  .main:has(.poker-grid) { max-width: none; padding-right: 40px; }
+  .poker-grid { grid-template-columns: minmax(0, 1fr) 320px 300px; }
+  .poker-grid .gto-col-wide { display: block; }
+  .poker-grid .gto-inline { display: none; }   /* avoid duplicate inside side panel */
+}
