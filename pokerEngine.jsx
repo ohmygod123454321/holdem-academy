@@ -58,16 +58,25 @@ function compareRanks(a, b) {
   return 0;
 }
 function bestOf7(cards) {
-  // cards: 5-7 parsed cards
-  if (cards.length <= 5) return eval5(cards);
-  let best = null;
+  // cards: 5, 6 or 7 parsed cards. Pick the best 5-card hand.
   const n = cards.length;
-  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
-    const five = [];
-    for (let k = 0; k < n; k++) if (k !== i && k !== j) five.push(cards[k]);
-    const r = eval5(five);
-    if (!best || compareRanks(r, best) > 0) best = r;
-  }
+  if (n <= 5) return eval5(cards);
+  // Evaluate every 5-card combination. Works for n = 6 (turn: 2+4) and
+  // n = 7 (river: 2+5). The previous version always dropped exactly 2 cards,
+  // which on the turn left only 4 cards and crashed eval5 → blank green screen.
+  let best = null;
+  const five = [];
+  (function choose(start, depth) {
+    if (depth === 5) {
+      const r = eval5(five);
+      if (!best || compareRanks(r, best) > 0) best = r;
+      return;
+    }
+    for (let i = start; i <= n - (5 - depth); i++) {
+      five[depth] = cards[i];
+      choose(i + 1, depth + 1);
+    }
+  })(0, 0);
   return best;
 }
 function rankName(r) {
