@@ -278,7 +278,7 @@ function PageTable() {
         <BustedBanner tourney={tourney} humanIdx={humanIdx} />
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 300px", gap: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", gap: 20 }}>
         <div style={{ minWidth: 0 }}>
           <TableView game={game} labels={labels} showAll={showCards} humanIdx={humanIdx} aiThinking={aiThinking} />
 
@@ -815,6 +815,11 @@ function SidePanel({ game, labels, human, humanIdx }) {
         <GtoCoach game={game} humanIdx={humanIdx} eq={eq} />
       )}
 
+      <GtoRangeChart
+        defaultPos={labels[humanIdx] || "BTN"}
+        holeCode={human && human.hole ? PE.handCode(human.hole[0], human.hole[1]) : null}
+      />
+
       <div className="card">
         <div className="card-eyebrow mb-8">行動紀錄</div>
         <div style={{ maxHeight: 280, overflowY: "auto", fontFamily: "var(--mono)", fontSize: 12 }}>
@@ -827,6 +832,49 @@ function SidePanel({ game, labels, human, humanIdx }) {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ----- GTO preflop range chart (live reference) -----
+const RANGE_POSITIONS = ["UTG", "UTG+1", "MP", "LJ", "HJ", "CO", "BTN", "SB", "BB"];
+function GtoRangeChart({ defaultPos, holeCode }) {
+  const [pos, setPos] = useState(() => RANGE_POSITIONS.includes(defaultPos) ? defaultPos : "BTN");
+  // follow the hero's seat as the hand rotates, until the user picks manually
+  const [pinned, setPinned] = useState(false);
+  useEffect(() => {
+    if (!pinned && defaultPos && RANGE_POSITIONS.includes(defaultPos)) setPos(defaultPos);
+  }, [defaultPos, pinned]);
+
+  const grid = useMemo(() => (PEX ? PEX.preflopRange(pos) : []), [pos]);
+  if (!PEX) return null;
+
+  return (
+    <div className="card">
+      <div className="row between mb-8">
+        <div className="card-eyebrow">GTO 開池範圍 · RFI</div>
+        <select className="gto-pos-select" value={pos}
+          onChange={e => { setPinned(true); setPos(e.target.value); }}>
+          {RANGE_POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+      </div>
+      <div className="gto-grid">
+        {grid.map((row, i) => row.map((cell, j) => (
+          <div key={i + "-" + j}
+            className={"gto-cell gto-" + cell.action + (cell.code === holeCode ? " gto-hl" : "")}
+            title={cell.code + " · " + (cell.action === "raise" ? "開加注" : cell.action === "mixed" ? "混合/偷盲" : "棄牌")}>
+            {cell.code}
+          </div>
+        )))}
+      </div>
+      <div className="gto-legend">
+        <span><i className="gto-raise" />開加注</span>
+        <span><i className="gto-mixed" />混合/偷盲</span>
+        <span><i className="gto-fold" />棄牌</span>
+      </div>
+      <div className="mono text-faint" style={{ fontSize: 10, marginTop: 8, lineHeight: 1.5 }}>
+        {pinned ? "已手動選位置" : "跟隨你目前的座位"} · 綠框為你的手牌。近似 GTO，依位置與牌力估算，非 solver 精解。
       </div>
     </div>
   );

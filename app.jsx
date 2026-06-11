@@ -35,6 +35,16 @@ function App() {
   const [page, setPage] = useState(() => {
     try { return localStorage.getItem("hp-page") || "home"; } catch { return "home"; }
   });
+  const [navCollapsed, setNavCollapsed] = useState(() => {
+    try { return localStorage.getItem("hp-nav-collapsed") === "1"; } catch { return false; }
+  });
+  function toggleNav() {
+    setNavCollapsed(c => {
+      const next = !c;
+      try { localStorage.setItem("hp-nav-collapsed", next ? "1" : "0"); } catch {}
+      return next;
+    });
+  }
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULS);
 
   // apply theme
@@ -77,7 +87,10 @@ function App() {
   }
 
   return (
-    <div className="app" data-screen-label={pageLabel(page)}>
+    <div className={"app" + (navCollapsed ? " nav-collapsed" : "")} data-screen-label={pageLabel(page)}>
+      {navCollapsed && (
+        <button className="nav-reopen-btn" onClick={toggleNav} title="展開目錄" aria-label="展開目錄">☰</button>
+      )}
       <aside className="sidebar">
         <div className="brand" onClick={() => go("home")} style={{ cursor: "pointer" }}>
           <div className="brand-mark">♠</div>
@@ -85,6 +98,9 @@ function App() {
             <div className="brand-name">Hold'em Academy</div>
             <div className="brand-sub">德州撲克學院</div>
           </div>
+          <button className="nav-collapse-btn"
+            onClick={(e) => { e.stopPropagation(); toggleNav(); }}
+            title="收合目錄" aria-label="收合目錄">‹</button>
         </div>
         <nav className="col gap-4" style={{ flex: 1 }}>
           {NAV.map(group => (

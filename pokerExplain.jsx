@@ -222,7 +222,11 @@ function gtoAdvise(state, idx, precomputedEq) {
   const posInfo = positionInfo(pos);
   const hand = classifyHole(seat.hole);
   const isPreflop = state.street === "preflop";
-  const facing = acts.toCall > 0;
+  // Preflop everyone except the BB owes the blind, so acts.toCall > 0 is NOT a
+  // reliable "facing a raise" signal. A pot is only truly raised once someone
+  // puts in more than the big blind. Treat a limped/unopened pot as an RFI spot.
+  const preflopUnopened = isPreflop && state.currentBet <= state.bb;
+  const facing = acts.toCall > 0 && !preflopUnopened;
 
   let mix = [];
   const reasoning = [];
@@ -491,8 +495,45 @@ function explainPostflopAction(h, ctx, hand, posInfo, styleTag, facing) {
 }
 
 // ============================================================
+// Preflop RFI range matrix (13x13) for the live reference chart.
+// Mirrors the same position thresholds the coach uses, so the chart and the
+// per-hand advice stay consistent.
+// ============================================================
+const PREFLOP_RANKS = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
+
+function rfiAction(pos, c1, c2) {
+  const s = PE.preflopStrength(c1, c2);
+  const t = openThreshFor(pos);
+  if (s >= t) return "raise";
+  // late positions mix in a wider, lower-frequency steal range
+  if (s >= t - 10 && (pos === "BTN" || pos === "CO" || pos === "SB" || pos === "HJ")) return "mixed";
+  return "fold";
+}
+
+// Build the standard hand matrix: suited in the upper-right triangle,
+// offsuit in the lower-left, pairs on the diagonal.
+function preflopRange(pos) {
+  const R = PREFLOP_RANKS;
+  const grid = [];
+  for (let i = 0; i < 13; i++) {
+    const row = [];
+    for (let j = 0; j < 13; j++) {
+      const hi = R[Math.min(i, j)], lo = R[Math.max(i, j)];
+      let c1, c2, type, code;
+      if (i === j) { c1 = R[i] + "s"; c2 = R[i] + "h"; type = "pair"; code = R[i] + R[i]; }
+      else if (i < j) { c1 = hi + "s"; c2 = lo + "s"; type = "suited"; code = hi + lo + "s"; }
+      else { c1 = hi + "s"; c2 = lo + "h"; type = "offsuit"; code = hi + lo + "o"; }
+      row.push({ code, type, action: rfiAction(pos, c1, c2) });
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+
+// ============================================================
 window.PokerExplain = {
   classifyHole, classifyMadeHand, boardTexture, countDraws,
   positionInfo, openThreshFor, HAND_TIERS, POSITIONS,
   gtoAdvise, buildHandReview, explainAction,
+  preflopRange, PREFLOP_RANKS,
 };
