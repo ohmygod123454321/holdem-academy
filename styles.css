@@ -487,7 +487,9 @@ table.dt td.num { font-family: var(--mono); }
 }
 
 /* ---- Collapsible left nav ---- */
-.app.nav-collapsed { grid-template-columns: 0 1fr; }
+/* single column when collapsed — otherwise main gets auto-placed into the
+   now-empty first track and is squeezed to ~0 width */
+.app.nav-collapsed { grid-template-columns: 1fr; }
 .app.nav-collapsed .sidebar { display: none; }
 .nav-collapse-btn {
   margin-left: auto;
