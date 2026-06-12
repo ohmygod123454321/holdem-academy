@@ -22,24 +22,25 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
-<script type="text/babel" src="tweaks-panel.jsx"></script>
-<script type="text/babel" src="ui.jsx"></script>
-<script type="text/babel" src="data.jsx"></script>
-<script type="text/babel" src="pageHome.jsx"></script>
-<script type="text/babel" src="pageRules.jsx"></script>
-<script type="text/babel" src="pagePositions.jsx"></script>
-<script type="text/babel" src="pagePreflop.jsx"></script>
-<script type="text/babel" src="pageOdds.jsx"></script>
-<script type="text/babel" src="pageStack.jsx"></script>
-<script type="text/babel" src="pageTournament.jsx"></script>
-<script type="text/babel" src="pagePractice.jsx"></script>
-<script type="text/babel" src="pageReplay.jsx"></script>
-<script type="text/babel" src="pageGTO.jsx"></script>
-<script type="text/babel" src="pageGlossary.jsx"></script>
-<script src="pokerEngine.jsx"></script>
-<script type="text/babel" src="pokerAI.jsx"></script>
-<script type="text/babel" src="pokerExplain.jsx"></script>
-<script type="text/babel" src="pageTable.jsx"></script>
-<script type="text/babel" src="app.jsx"></script>
+<!-- 載入順序固定，請勿更動（pokerEngine 必須在 pokerAI 之前，app 最後） -->
+<script type="text/babel" src="src/components/tweaks-panel.jsx"></script>
+<script type="text/babel" src="src/components/ui.jsx"></script>
+<script type="text/babel" src="src/data.jsx"></script>
+<script type="text/babel" src="src/pages/pageHome.jsx"></script>
+<script type="text/babel" src="src/pages/pageRules.jsx"></script>
+<script type="text/babel" src="src/pages/pagePositions.jsx"></script>
+<script type="text/babel" src="src/pages/pagePreflop.jsx"></script>
+<script type="text/babel" src="src/pages/pageOdds.jsx"></script>
+<script type="text/babel" src="src/pages/pageStack.jsx"></script>
+<script type="text/babel" src="src/pages/pageTournament.jsx"></script>
+<script type="text/babel" src="src/pages/pagePractice.jsx"></script>
+<script type="text/babel" src="src/pages/pageReplay.jsx"></script>
+<script type="text/babel" src="src/pages/pageGTO.jsx"></script>
+<script type="text/babel" src="src/pages/pageGlossary.jsx"></script>
+<script src="src/engine/pokerEngine.jsx"></script>
+<script type="text/babel" src="src/engine/pokerAI.jsx"></script>
+<script type="text/babel" src="src/engine/pokerExplain.jsx"></script>
+<script type="text/babel" src="src/pages/pageTable.jsx"></script>
+<script type="text/babel" src="src/app.jsx"></script>
 </body>
 </html>

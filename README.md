@@ -20,11 +20,24 @@ npx serve .
 設定見 `netlify.toml`。
 
 ## 結構
-- `index.html` — 入口與 script 載入順序（**勿更動順序**）
-- `styles.css` — 全站樣式 / design tokens
-- `app.jsx` — 路由與外殼
-- `ui.jsx` — 共用 UI 元件
-- `data.jsx` — 教學內容資料
-- `page*.jsx` — 各分頁
-- `pokerEngine.jsx` / `pokerAI.jsx` / `pokerExplain.jsx` — 發牌引擎、對手 AI、解說邏輯
-- `tweaks-panel.jsx` — 可選的調整面板
+```
+index.html              入口與 script 載入順序（順序固定，勿更動）
+styles.css              全站樣式 / design tokens
+netlify.toml            Netlify 部署設定
+src/
+  app.jsx               路由與外殼（最後載入）
+  data.jsx              教學內容資料
+  engine/
+    pokerEngine.jsx     發牌引擎（純 JS，須在 pokerAI 之前載入）
+    pokerAI.jsx         對手 AI
+    pokerExplain.jsx    GTO 解說 / 牌力分類 / 開池範圍
+  pages/
+    pageHome.jsx … pageGlossary.jsx   各教學分頁
+    pageTable.jsx       練習桌（現金桌 / MTT）
+  components/
+    ui.jsx              共用 UI 元件（PlayingCard、Pill…）
+    tweaks-panel.jsx    視覺調整面板
+```
+
+> 所有 `.jsx` 都是全域 script、彼此沒有 `import`，僅靠 `index.html` 的載入順序串接。
+> 搬動檔案只需同步更新 `index.html` 的 `src=` 路徑；`pokerEngine.jsx` 不走 Babel（純 JS），其餘為 `type="text/babel"`。
