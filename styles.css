@@ -578,3 +578,21 @@ table.dt td.num { font-family: var(--mono); }
   .poker-grid .gto-col-wide { display: block; }
   .poker-grid .gto-inline { display: none; }   /* avoid duplicate inside side panel */
 }
+
+/* ---- Responsive card sizing: scale with the felt's width ----
+   The table is a query container; cards use cqw so they shrink on a narrow
+   table (e.g. the 3-column layout) and stay big on wide screens. clamp() pins
+   sensible min/max so they never get unreadable or overflow the seat box. */
+.poker-felt {
+  container-type: inline-size;
+  --seat-card-w: clamp(30px, 6.4cqw, 60px);
+  --seat-back-w: clamp(26px, 5.6cqw, 52px);
+  --board-card-w: clamp(28px, 5.1cqw, 48px);
+}
+.board-slot {
+  width: var(--board-card-w);
+  aspect-ratio: 48 / 68;
+  border-radius: 4px;
+  border: 1.5px dashed rgba(244, 234, 208, 0.18);
+  flex-shrink: 0;
+}

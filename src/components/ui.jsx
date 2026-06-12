@@ -12,7 +12,9 @@ const RANKS = ["2","3","4","5","6","7","8","9","T","J","Q","K","A"];
 const RANK_LABEL = { T: "10" };
 
 function PlayingCard({ card, size = 64, faceDown = false, placeholder = false, label }) {
-  const style = { "--w": size + "px" };
+  // size may be a number (px) or any CSS length string (e.g. a clamp()/cqw
+  // expression) so callers can make cards scale with their container.
+  const style = { "--w": typeof size === "number" ? size + "px" : size };
   if (placeholder) {
     return <div className="pcard placeholder" style={style}>{label || "—"}</div>;
   }

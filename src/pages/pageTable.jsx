@@ -555,7 +555,7 @@ function TableView({ game, labels, showAll, humanIdx, aiThinking }) {
   // Responsive aspect ratio table; everything uses % positioning
   return (
     <div className="card" style={{ padding: 0, overflow: "hidden", background: "var(--felt-deep)" }}>
-      <div style={{
+      <div className="poker-felt" style={{
         position: "relative", width: "100%",
         aspectRatio: "16 / 10",
         minHeight: 380,
@@ -574,12 +574,9 @@ function TableView({ game, labels, showAll, humanIdx, aiThinking }) {
           zIndex: 2,
         }}>
           <div className="row gap-6" style={{ minHeight: 64 }}>
-            {game.board.map((c, i) => <PlayingCard key={i} card={c} size={48} />)}
+            {game.board.map((c, i) => <PlayingCard key={i} card={c} size="var(--board-card-w)" />)}
             {Array.from({ length: 5 - game.board.length }).map((_, i) => (
-              <div key={i} style={{
-                width: 48, height: 68, borderRadius: 4,
-                border: "1.5px dashed rgba(244,234,208,0.18)",
-              }} />
+              <div key={i} className="board-slot" />
             ))}
           </div>
           <div className="mono" style={{ fontSize: 12, color: "var(--gold)", letterSpacing: "0.18em", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
@@ -623,10 +620,10 @@ function SeatView({ seat, label, xPct, yPct, isToAct, showCards, isDealer }) {
       <div className="row center gap-4" style={{ minHeight: 50, marginBottom: 6 }}>
         {seat.hole && !isFolded ? (
           showCards
-            ? seat.hole.map((c, i) => <PlayingCard key={i} card={c} size={58} />)
+            ? seat.hole.map((c, i) => <PlayingCard key={i} card={c} size="var(--seat-card-w)" />)
             : <>
-                <div className="pcard back" style={{ "--w": "51px" }} />
-                <div className="pcard back" style={{ "--w": "51px" }} />
+                <div className="pcard back" style={{ "--w": "var(--seat-back-w)" }} />
+                <div className="pcard back" style={{ "--w": "var(--seat-back-w)" }} />
               </>
         ) : isFolded && seat.hole ? null : null}
       </div>
