@@ -399,17 +399,20 @@ function advance(state) {
     return endHand(state, [{ idx: state.seats.indexOf(live[0]), share: state.pot, reason: "uncontested" }]);
   }
 
-  // check if street complete
+  // Street is complete only when every still-actable (non-all-in) player has
+  // acted this street AND matched the current bet. Do NOT end early just because
+  // a single actable player remains: if they still owe a call (e.g. facing an
+  // opponent's all-in/bet) they MUST call or fold first — otherwise the engine
+  // would skip their decision and let them "check" on the next street.
   const nonAllin = live.filter(p => !p.allin);
-  const allActed = nonAllin.every(p => p.actedThisStreet && p.streetBet === state.currentBet);
-  const onlyOneActable = nonAllin.length <= 1;
+  const allMatched = nonAllin.every(p => p.actedThisStreet && p.streetBet === state.currentBet);
 
-  if (allActed || onlyOneActable) {
-    // street done — go to next or showdown
+  if (nonAllin.length === 0 || allMatched) {
+    // everyone is all-in, or all bets are settled — go to next street / showdown
     return nextStreet(state);
   }
 
-  // pass action
+  // pass action to the next player who still needs to act
   state.toAct = nextActiveIdx(state, state.toAct);
   state.inputRequired = needsInput(state);
   return state;
