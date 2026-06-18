@@ -10,7 +10,7 @@ const MP_SERVER_URL =
   (typeof location !== "undefined" &&
     (location.hostname === "localhost" || location.hostname === "127.0.0.1"))
     ? "ws://localhost:8080"
-    : "wss://holdem-academy-server.onrender.com"; // ← TODO: 換成你的 Render 網址
+    : "wss://holdem-academy-server.onrender.com"; // 正式後端（Render）已上線
 
 function viewToGame(view) {
   // Adapt the server view into the shape TableView/ActionControls expect.
