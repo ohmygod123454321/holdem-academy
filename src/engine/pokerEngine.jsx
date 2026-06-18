@@ -547,10 +547,15 @@ function positionLabels(state) {
   return labels;
 }
 
-window.PokerEngine = {
+const PokerEngineAPI = {
   RANK_VAL, makeDeck, shuffle, parseCard,
   eval5, bestOf7, compareRanks, rankName,
   equity, handCode, preflopStrength,
   newGame, startHand, applyAction, availableActions,
   positionLabels, nextActiveIdx,
 };
+
+// Dual environment: browser loads this as a plain <script> (sets window),
+// the Node backend require()s it (module.exports). Same single source of truth.
+if (typeof window !== "undefined") window.PokerEngine = PokerEngineAPI;
+if (typeof module !== "undefined" && module.exports) module.exports = PokerEngineAPI;
