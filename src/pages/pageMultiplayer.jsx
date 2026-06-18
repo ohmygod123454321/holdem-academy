@@ -56,7 +56,7 @@ function PageMultiplayer() {
   const [password, setPassword] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [joinPassword, setJoinPassword] = useState("");
-  const [cfg, setCfg] = useState({ sb: 10, bb: 20, startingStack: 2000 });
+  const [cfg, setCfg] = useState({ sb: 10, bb: 20, startingStack: 2000, maxSeats: 9 });
 
   useEffect(() => () => { if (wsRef.current) wsRef.current.close(); }, []);
 
@@ -171,6 +171,11 @@ function MenuScreen({ name, setName, usePassword, setUsePassword, password, setP
           <label className="mono" style={{ fontSize: 12, color: "var(--fg-dim)" }}>起始籌碼</label>
           <input className="mp-input mp-input-sm" type="number" value={cfg.startingStack}
             onChange={e => setCfg(c => ({ ...c, startingStack: +e.target.value }))} />
+          <label className="mono" style={{ fontSize: 12, color: "var(--fg-dim)" }}>人數上限</label>
+          <select className="mp-input mp-input-sm" value={cfg.maxSeats}
+            onChange={e => setCfg(c => ({ ...c, maxSeats: +e.target.value }))}>
+            {[2, 3, 4, 5, 6, 7, 8, 9].map(n => <option key={n} value={n}>{n} 人</option>)}
+          </select>
         </div>
         <label className="row gap-8" style={{ marginBottom: 8, cursor: "pointer", fontSize: 13 }}>
           <input type="checkbox" checked={usePassword} onChange={e => setUsePassword(e.target.checked)} />
@@ -223,6 +228,7 @@ function LobbyScreen({ room, me, onStart }) {
         <div className="row gap-8" style={{ marginTop: 12, flexWrap: "wrap" }}>
           <Pill tone={room.hasPassword ? "gold" : ""}>{room.hasPassword ? "🔒 有密碼" : "無密碼"}</Pill>
           <Pill>{room.config.sb}/{room.config.bb} · 起始 {room.config.startingStack}</Pill>
+          <Pill>最多 {room.config.maxSeats || 9} 人</Pill>
         </div>
         {me.isHost ? (
           <button className="btn btn-primary" style={{ width: "100%", marginTop: 20 }}
@@ -235,7 +241,7 @@ function LobbyScreen({ room, me, onStart }) {
       </div>
 
       <div className="card">
-        <div className="card-eyebrow mb-8">玩家（{room.players.length}）</div>
+        <div className="card-eyebrow mb-8">玩家（{room.players.length}/{room.config.maxSeats || 9}）</div>
         <div className="col gap-8">
           {room.players.map(p => (
             <div key={p.id} className="row between" style={{ padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>

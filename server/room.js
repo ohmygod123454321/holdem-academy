@@ -32,6 +32,7 @@ class Room {
       sb: opts.sb || 10,
       bb: opts.bb || 20,
       startingStack: opts.startingStack || 2000,
+      maxSeats: Math.max(2, Math.min(MAX_SEATS, opts.maxSeats || MAX_SEATS)),
     };
     this.createdAt = Date.now();
   }
@@ -46,7 +47,7 @@ class Room {
 
   addPlayer(player) {
     if (this.started) { const e = new Error("遊戲已開始，無法加入"); e.code = "IN_PROGRESS"; throw e; }
-    if (this.players.length >= MAX_SEATS) { const e = new Error("房間已滿"); e.code = "FULL"; throw e; }
+    if (this.players.length >= this.config.maxSeats) { const e = new Error("房間已滿"); e.code = "FULL"; throw e; }
     this.players.push(player);
   }
 
