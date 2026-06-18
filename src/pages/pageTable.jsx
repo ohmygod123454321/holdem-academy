@@ -189,6 +189,11 @@ function PageTable() {
       const lvl = t.levels[t.levelIdx];
       g = { ...g, sb: lvl.sb, bb: lvl.bb };
     }
+    // Cash game: auto-rebuy any busted AI so the table never empties out.
+    if (!t) {
+      const rebuyTo = setup.stack * setup.bb;
+      g = { ...g, seats: g.seats.map(s => (!s.isHuman && s.stack <= 0) ? { ...s, stack: rebuyTo } : s) };
+    }
     let next = PE.startHand(g);
     if (t) next = postAntes(next, t.levels[t.levelIdx].ante);
     setGame({ ...next });
@@ -196,6 +201,23 @@ function PageTable() {
     setShowCards(false);
     setHandFeedback(null);
     setFeedback([]);
+  }
+
+  // Cash game: player buys back in after busting. Refills the human (and any
+  // busted AI) to the starting stack; if the hand is over, deals the next one
+  // so the player is immediately back in.
+  function cashRebuy() {
+    const amount = setup.stack * setup.bb;
+    setShowCards(false);
+    setHandFeedback(null);
+    setFeedback([]);
+    setGame(g => {
+      if (!g) return g;
+      const seats = g.seats.map(s => (s.isHuman || s.stack <= 0) ? { ...s, stack: amount } : s);
+      let ng = { ...g, seats };
+      if (ng.finished) ng = PE.startHand(ng);
+      return { ...ng };
+    });
   }
 
   // AI auto-play
@@ -246,7 +268,9 @@ function PageTable() {
   const human = game.seats.find(s => s.isHuman);
   const humanIdx = game.seats.indexOf(human);
   const humanBusted = tourney && human && human.stack === 0;
+  const cashBusted = !tourney && human && human.stack === 0;
   const tournamentEnded = tourney && tournamentDone(tourney);
+  const leaveTable = () => { setGame(null); setTourney(null); };
   const myTurn = game.toAct === humanIdx && !game.finished && human && !human.folded && human.stack > 0;
   const labels = PE.positionLabels(game);
 
@@ -275,7 +299,11 @@ function PageTable() {
           onRestart={() => { setGame(null); setTourney(null); }} />
       )}
       {humanBusted && !tournamentEnded && (
-        <BustedBanner tourney={tourney} humanIdx={humanIdx} />
+        <BustedBanner tourney={tourney} humanIdx={humanIdx}
+          onRestart={startNewGame} onLeave={leaveTable} />
+      )}
+      {cashBusted && (
+        <CashBustedBanner amount={setup.stack * setup.bb} onRebuy={cashRebuy} onLeave={leaveTable} />
       )}
 
       <div className="poker-grid">
@@ -1349,7 +1377,7 @@ function TournamentHUD({ tourney, game, humanIdx }) {
 /* ============================================================
    BustedBanner · 你出局了
    ============================================================ */
-function BustedBanner({ tourney, humanIdx }) {
+function BustedBanner({ tourney, humanIdx, onRestart, onLeave }) {
   const myElim = tourney.eliminations.find(e => e.idx === humanIdx);
   if (!myElim) return null;
   const inMoney = myElim.prize > 0;
@@ -1369,14 +1397,45 @@ function BustedBanner({ tourney, humanIdx }) {
           </div>
           <div className="text-dim mt-8" style={{ fontSize: 13 }}>
             {inMoney
-              ? "已進獎金。可繼續觀戰，看 AI 把錦標賽打完。"
-              : "未進獎金。要進前 " + tourney.paid + " 名才有獎金。可繼續觀戰，或回首頁重來。"}
+              ? "已進獎金！錦標賽到此結束。可重新買入再打一場，或離桌。"
+              : "未進獎金（要進前 " + tourney.paid + " 名）。可重新買入再打一場，或離桌。"}
+          </div>
+          <div className="row gap-12" style={{ marginTop: 16 }}>
+            <button className="btn btn-primary btn-sm" onClick={onRestart}>重新買入再戰 →</button>
+            <button className="btn btn-ghost btn-sm" onClick={onLeave}>離桌</button>
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div className="card-eyebrow mb-8">獎金</div>
           <div className="serif" style={{ fontSize: 32, fontWeight: 700, color: inMoney ? "var(--good)" : "var(--fg-faint)" }}>
             ${myElim.prize.toLocaleString()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   CashBustedBanner · 現金桌輸光，提供再買入
+   ============================================================ */
+function CashBustedBanner({ amount, onRebuy, onLeave }) {
+  return (
+    <div className="card mb-16" style={{
+      padding: "20px 26px",
+      borderLeft: "4px solid var(--bad)",
+      background: "rgba(217,111,94,0.06)",
+    }}>
+      <div className="row between" style={{ flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <div className="card-eyebrow mb-8" style={{ color: "var(--bad)" }}>你輸光了籌碼</div>
+          <div className="serif" style={{ fontSize: 22, fontWeight: 700 }}>要再買一手重新上桌嗎？</div>
+          <div className="text-dim mt-8" style={{ fontSize: 13 }}>
+            現金桌可隨時補碼。再買入會帶 ${amount.toLocaleString()} 重新入座，下一手就發牌給你。
+          </div>
+          <div className="row gap-12" style={{ marginTop: 16 }}>
+            <button className="btn btn-primary btn-sm" onClick={onRebuy}>再買入 ${amount.toLocaleString()} 上桌 →</button>
+            <button className="btn btn-ghost btn-sm" onClick={onLeave}>離桌</button>
           </div>
         </div>
       </div>
