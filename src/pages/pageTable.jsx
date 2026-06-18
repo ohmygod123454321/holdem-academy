@@ -317,7 +317,7 @@ function PageTable() {
           </div>
         </div>
 
-        <SidePanel game={game} labels={labels} human={human} humanIdx={humanIdx} />
+        <div className="table-side"><SidePanel game={game} labels={labels} human={human} humanIdx={humanIdx} /></div>
 
         {/* far-right GTO range column (wide screens only; falls back to inline
             inside the side panel on narrower screens) */}
@@ -558,7 +558,6 @@ function TableView({ game, labels, showAll, humanIdx, aiThinking }) {
       <div className="poker-felt" style={{
         position: "relative", width: "100%",
         aspectRatio: "16 / 10",
-        minHeight: 380,
       }}>
         {/* felt ellipse */}
         <div className="felt" style={{
@@ -612,7 +611,7 @@ function SeatView({ seat, label, xPct, yPct, isToAct, showCards, isDealer }) {
       position: "absolute",
       left: xPct + "%", top: yPct + "%",
       transform: "translate(-50%, -50%)",
-      width: 156, opacity: isFolded ? 0.4 : 1,
+      width: "var(--seat-w, 156px)", opacity: isFolded ? 0.4 : 1,
       transition: "opacity .3s",
       zIndex: 3,
     }}>

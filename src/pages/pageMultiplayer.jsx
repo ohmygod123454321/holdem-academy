@@ -292,7 +292,7 @@ function GameScreen({ view, room, me, betAmount, setBetAmount, onAction, onNextH
         </div>
       </div>
 
-      <div className="col gap-16">
+      <div className="col gap-16 table-side">
         <div className="card">
           <div className="card-eyebrow mb-8">房間 {room ? room.code : ""}</div>
           <div className="col gap-12">

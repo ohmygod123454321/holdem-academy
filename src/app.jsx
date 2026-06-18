@@ -39,7 +39,12 @@ function App() {
     try { return localStorage.getItem("hp-page") || "home"; } catch { return "home"; }
   });
   const [navCollapsed, setNavCollapsed] = useState(() => {
-    try { return localStorage.getItem("hp-nav-collapsed") === "1"; } catch { return false; }
+    try {
+      const saved = localStorage.getItem("hp-nav-collapsed");
+      if (saved !== null) return saved === "1";
+      // default to collapsed on phones so the content gets the full width
+      return typeof window !== "undefined" && window.innerWidth <= 820;
+    } catch { return false; }
   });
   function toggleNav() {
     setNavCollapsed(c => {
