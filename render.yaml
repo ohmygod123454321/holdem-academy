@@ -1,0 +1,12 @@
+# Render Blueprint — 部署多人對戰後端（Node WebSocket 伺服器）
+# 在 Render → New → Blueprint，選這個 repo 即會依此建立服務。
+services:
+  - type: web
+    name: holdem-academy-server
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
