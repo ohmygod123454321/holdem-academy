@@ -1,7 +1,7 @@
 /* global React, ReactDOM, useState, useEffect,
    PageHome, PageRules, PagePositions, PagePreflop, PageOdds, PageStack,
    PageTournament, PagePractice, PageReplay, PageGTO, PageGlossary, PageTable,
-   TweaksPanel, useTweaks, TweakSection, TweakRadio, TweakColor */
+   PageMultiplayer, TweaksPanel, useTweaks, TweakSection, TweakRadio, TweakColor */
 
 const NAV = [
   { group: "開始", items: [
@@ -20,6 +20,9 @@ const NAV = [
     { id: "table",      num: "08", label: "練習桌 · LIVE" },
     { id: "practice",   num: "09", label: "情境練習" },
     { id: "replay",     num: "10", label: "手牌復盤" },
+  ]},
+  { group: "對戰", items: [
+    { id: "multiplayer", num: "12", label: "多人對戰 · ONLINE" },
   ]},
   { group: "參考", items: [
     { id: "glossary",   num: "11", label: "術語字典" },
@@ -80,6 +83,7 @@ function App() {
     case "tournament": body = <PageTournament />; break;
     case "gto":        body = <PageGTO />; break;
     case "table":     body = <PageTable />; break;
+    case "multiplayer": body = <PageMultiplayer />; break;
     case "practice":  body = <PagePractice />; break;
     case "replay":    body = <PageReplay />; break;
     case "glossary":  body = <PageGlossary />; break;
@@ -159,6 +163,7 @@ function pageLabel(p) {
     home: "00 首頁", rules: "01 規則牌力", positions: "02 位置", preflop: "03 起手牌",
     odds: "04 賠率", stack: "05 籌碼", tournament: "06 錦標賽", gto: "07 GTO",
     table: "08 練習桌", practice: "09 情境練習", replay: "10 復盤", glossary: "11 字典",
+    multiplayer: "12 多人對戰",
   };
   return map[p] || p;
 }

@@ -596,3 +596,18 @@ table.dt td.num { font-family: var(--mono); }
   border: 1.5px dashed rgba(244, 234, 208, 0.18);
   flex-shrink: 0;
 }
+
+/* ---- Multiplayer lobby inputs ---- */
+.mp-input {
+  width: 100%;
+  background: var(--felt-deep);
+  color: var(--cream);
+  border: 1px solid var(--line-bright);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--sans);
+  font-size: 15px;
+  outline: none;
+}
+.mp-input:focus { border-color: var(--gold); }
+.mp-input-sm { width: 84px; font-family: var(--mono); font-size: 13px; padding: 6px 8px; }
