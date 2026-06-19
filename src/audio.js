@@ -145,6 +145,21 @@ const Sound = (function () {
     if (schedTimer) { clearInterval(schedTimer); schedTimer = null; }
   }
 
+  // Browsers only allow audio after a user gesture. Prime the AudioContext on
+  // the first interaction anywhere, so SFX (including timer-driven AI bets on
+  // the practice table) play without needing to open the audio panel first.
+  function unlock() {
+    ensure(); resume();
+    window.removeEventListener("pointerdown", unlock);
+    window.removeEventListener("keydown", unlock);
+    window.removeEventListener("touchstart", unlock);
+  }
+  if (typeof window !== "undefined") {
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    window.addEventListener("touchstart", unlock);
+  }
+
   return {
     tracks: Object.keys(TRACKS).map(id => ({ id, name: TRACKS[id].name, desc: TRACKS[id].desc })),
     chip, tap, swish, win, act,
