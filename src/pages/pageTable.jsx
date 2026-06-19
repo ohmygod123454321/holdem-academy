@@ -557,10 +557,13 @@ function SetupScreen({ setup, setSetup, onStart }) {
         </div>
       </div>
 
-      <div className="row center mt-32">
+      <div className="col center mt-32" style={{ gap: 10 }}>
         <button className="btn btn-primary" style={{ padding: "14px 32px", fontSize: 15 }} onClick={onStart}>
           {isMTT ? "開始錦標賽 →" : "開始牌局 →"}
         </button>
+        <div className="mono text-faint" style={{ fontSize: 11 }}>
+          新手建議：現金桌 · 6 人 · 100bb · 均衡對手。牌桌上有即時牌力與 GTO 教練陪你。
+        </div>
       </div>
     </div>
   );
