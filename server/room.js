@@ -78,6 +78,19 @@ class Room {
     this.game = PE.startHand(this.game);
   }
 
+  // A busted player buys back in to the starting stack. They re-enter on the
+  // next hand (they're already out of the current one).
+  rebuy(playerId) {
+    const g = this.game;
+    if (!g) return false;
+    const idx = this.seatIndexOf(playerId);
+    if (idx < 0) return false;
+    const seat = g.seats[idx];
+    if (seat.stack > 0) return false;
+    seat.stack = this.config.startingStack;
+    return true;
+  }
+
   applyAction(playerId, action) {
     const g = this.game;
     if (!g) { const e = new Error("遊戲尚未開始"); e.code = "NOT_STARTED"; throw e; }

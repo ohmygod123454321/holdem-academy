@@ -641,7 +641,7 @@ function TableView({ game, labels, showAll, humanIdx, aiThinking }) {
             ))}
           </div>
           <div className="mono" style={{ fontSize: 12, color: "var(--gold)", letterSpacing: "0.18em", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
-            POT {game.pot}
+            POT {game.pot.toLocaleString()}
           </div>
         </div>
 
@@ -704,7 +704,7 @@ function SeatView({ seat, label, xPct, yPct, isToAct, showCards, isDealer }) {
           <span className="mono" style={{ fontSize: 10, opacity: 0.7 }}>{label}</span>
         </div>
         <div className="mono" style={{ fontSize: 13, marginTop: 4 }}>
-          ${seat.stack}
+          ${(seat.stack || 0).toLocaleString()}
         </div>
         {seat.lastAction && (
           <div className="mono" style={{
@@ -784,14 +784,14 @@ function ActionControls({ acts, pot, bb, stack, streetBet, betAmount, setBetAmou
     <div>
       <div className="row between mb-16">
         <div className="row gap-16">
-          <Pill tone="gold">底池 {pot}</Pill>
+          <Pill tone="gold">底池 {pot.toLocaleString()}</Pill>
           {acts.toCall > 0 ? (
-            <Pill tone="warn">需跟 {acts.toCall} · 賠率 {Math.round(acts.toCall / (pot + acts.toCall) * 100)}%</Pill>
+            <Pill tone="warn">需跟 {acts.toCall.toLocaleString()} · 賠率 {Math.round(acts.toCall / (pot + acts.toCall) * 100)}%</Pill>
           ) : (
             <Pill tone="good">免費看牌 (Check)</Pill>
           )}
         </div>
-        <span className="mono text-dim" style={{ fontSize: 12 }}>Stack ${stack}</span>
+        <span className="mono text-dim" style={{ fontSize: 12 }}>Stack ${stack.toLocaleString()}</span>
       </div>
 
       <div className="row gap-12 mb-16">

@@ -1,4 +1,4 @@
-/* global React, useState, useEffect, useRef, PageHeader, PlayingCard, Pill, TableView, ActionControls */
+/* global React, useState, useEffect, useRef, PageHeader, PlayingCard, Pill, TableView, ActionControls, HandReadout */
 // Multiplayer lobby + live table. Talks to the server-authoritative WebSocket
 // backend (server/). The server sends each client a privacy-safe `view`
 // (opponents' hole cards withheld until showdown); we just render it and send
@@ -147,6 +147,7 @@ function PageMultiplayer() {
         betAmount={betAmount} setBetAmount={setBetAmount}
         onAction={(action) => send({ type: "action", action })}
         onNextHand={nextHand}
+        onRebuy={() => send({ type: "rebuy" })}
       />}
     </div>
   );
@@ -257,16 +258,31 @@ function LobbyScreen({ room, me, onStart }) {
   );
 }
 
-function GameScreen({ view, room, me, betAmount, setBetAmount, onAction, onNextHand }) {
+function GameScreen({ view, room, me, betAmount, setBetAmount, onAction, onNextHand, onRebuy }) {
   const game = viewToGame(view);
   const myTurn = !view.finished && view.toAct === view.mySeat && view.legalActions;
   const mySeat = view.seats[view.mySeat];
+  const busted = mySeat && mySeat.stack <= 0;
+  const startStack = (room && room.config && room.config.startingStack) || 0;
   return (
     <div className="poker-grid">
       <div style={{ minWidth: 0 }}>
         <TableView game={game} labels={view.labels} showAll={view.finished} humanIdx={view.mySeat} aiThinking={false} />
 
+        {busted && (
+          <div className="card mt-24" style={{ padding: "16px 22px", borderLeft: "4px solid var(--bad)", background: "rgba(217,111,94,0.06)" }}>
+            <div className="row between" style={{ flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+              <div>
+                <div className="card-eyebrow" style={{ color: "var(--bad)" }}>你輸光了籌碼</div>
+                <div className="text-dim" style={{ fontSize: 13, marginTop: 4 }}>再買入會帶 ${startStack.toLocaleString()} 重新入座，下一手就回桌。</div>
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={onRebuy}>再買入 ${startStack.toLocaleString()} →</button>
+            </div>
+          </div>
+        )}
+
         <div className="card mt-24" style={{ padding: "20px 24px" }}>
+          {mySeat && mySeat.hole && mySeat.hole[0] && <HandReadout human={mySeat} game={game} />}
           {view.finished ? (
             <div className="row between" style={{ flexWrap: "wrap", gap: 12 }}>
               <div className="serif" style={{ fontSize: 20, fontWeight: 700 }}>
@@ -310,7 +326,7 @@ function GameScreen({ view, room, me, betAmount, setBetAmount, onAction, onNextH
                   {i === view.toAct && !view.finished ? "▶ " : ""}{s.name}{i === view.mySeat ? "（你）" : ""}
                   {!s.connected ? " ·離線" : ""}
                 </span>
-                <span className="mono" style={{ fontSize: 12, color: "var(--gold)" }}>${s.stack}</span>
+                <span className="mono" style={{ fontSize: 12, color: "var(--gold)" }}>${(s.stack || 0).toLocaleString()}</span>
               </div>
             ))}
           </div>

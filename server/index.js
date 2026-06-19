@@ -75,6 +75,7 @@ function handle(ws, msg) {
     case "startGame":    return onStartGame(ws, msg);
     case "action":       return onAction(ws, msg);
     case "nextHand":     return onNextHand(ws, msg);
+    case "rebuy":        return onRebuy(ws);
     case "leave":        return onLeave(ws);
     case "ping":         return send(ws, { type: "pong" });
     default:             return err(ws, "未知訊息: " + msg.type, "UNKNOWN");
@@ -128,6 +129,12 @@ function onNextHand(ws) {
   if (room.game && !room.game.finished) return err(ws, "本手還沒結束", "HAND_ACTIVE");
   room.nextHand();
   progressAndBroadcast(room);
+}
+
+function onRebuy(ws) {
+  const room = currentRoom(ws);
+  if (!room) return err(ws, "你不在任何房間", "NO_ROOM");
+  if (room.rebuy(ws.id)) broadcastState(room);
 }
 
 function onLeave(ws) {
