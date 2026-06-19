@@ -95,8 +95,8 @@ function PageReplay() {
             }}
           />
           <div className="row gap-12 mt-16">
-            <button className="btn btn-primary">分析牌局</button>
-            <button className="btn btn-ghost">清除</button>
+            <button className="btn btn-primary" onClick={() => { setAnalyzed(true); if (window.Progress) window.Progress.addReplay(); }}>分析牌局</button>
+            <button className="btn btn-ghost" onClick={() => setAnalyzed(false)}>清除</button>
           </div>
         </div>
       </Section>

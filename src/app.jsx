@@ -1,4 +1,4 @@
-/* global React, ReactDOM, useState, useEffect,
+/* global React, ReactDOM, useState, useEffect, useMemo,
    PageHome, PageRules, PagePositions, PagePreflop, PageOdds, PageStack,
    PageTournament, PagePractice, PageReplay, PageGTO, PageGlossary, PageTable,
    PageMultiplayer, TweaksPanel, useTweaks, TweakSection, TweakRadio, TweakColor */
@@ -63,19 +63,17 @@ function App() {
 
   function go(p) {
     setPage(p);
+    if (window.Progress) window.Progress.visitLesson(p);
     try { localStorage.setItem("hp-page", p); } catch {}
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
-  // mock progress for home page
-  const stats = {
-    lessonsDone: 3,
-    practiceDone: 5,
-    accuracy: 78,
-    level: "中階",
-    replays: 2,
-    mistakes: 4,
-  };
+  // real progress for home page (recomputed whenever we land on a page)
+  const stats = useMemo(
+    () => (window.Progress ? window.Progress.summary()
+      : { lessonsDone: 0, lessonTotal: 8, practiceDone: 0, accuracy: 0, mistakes: 0, replays: 0, level: "新手" }),
+    [page]
+  );
 
   let body = null;
   switch (page) {

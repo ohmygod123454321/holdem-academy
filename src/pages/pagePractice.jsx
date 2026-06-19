@@ -20,6 +20,7 @@ function PagePractice() {
     setPicked(id);
     const opt = sc.options.find(o => o.id === id);
     setHistory(h => [...h, { id: sc.id, picked: id, correct: opt.correct }]);
+    if (window.Progress) window.Progress.recordQuiz(sc.id, opt.correct);
   }
   function next() {
     setPicked(null);
@@ -417,7 +418,7 @@ function FeedbackPanel({ sc, picked, result }) {
             })}
           </div>
           <div className="mono text-faint mt-16" style={{ fontSize: 10, lineHeight: 1.6 }}>
-            「訊號矛盾」代表 chip-EV 與 $-EV 指向不同的選項 — 這是 ICM 的独特獸。錄取其中 $-EV 為正的選項。
+            「訊號矛盾」代表 chip-EV 與 $-EV 指向不同的選項 — 這是 ICM 的獨特之處。應選 $-EV 為正的選項。
           </div>
         </div>
       )}

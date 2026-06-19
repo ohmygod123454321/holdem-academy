@@ -9,7 +9,8 @@ function PageHome({ go, stats }) {
         sub="一套完整的德州撲克教學系統 — 規則、位置、起手牌、賠率、籌碼策略、互動牌局練習與手牌復盤。每題都告訴你 GTO 答案、勝率比較、以及為什麼。"
         right={
           <div className="row gap-12">
-            <button className="btn btn-primary" onClick={() => go("practice")}>開始練習牌局 →</button>
+            <button className="btn btn-primary" onClick={() => go("table")}>上桌實戰 vs AI →</button>
+            <button className="btn" onClick={() => go("multiplayer")}>多人對戰</button>
           </div>
         }
       />
@@ -47,10 +48,10 @@ function PageHome({ go, stats }) {
 
         <div className="grid-4" style={{ padding: 24, gap: 0 }}>
           {[
-            { k: "完成課程", v: stats.lessonsDone + " / 9", s: "繼續學習" },
-            { k: "練習題", v: stats.practiceDone, s: "正確率 " + stats.accuracy + "%" },
-            { k: "目前等級", v: stats.level, s: "進階中" },
-            { k: "復盤次數", v: stats.replays, s: "找到 " + stats.mistakes + " 處可改" },
+            { k: "完成課程", v: stats.lessonsDone + " / " + (stats.lessonTotal || 8), s: stats.lessonsDone ? "繼續學習" : "尚未開始" },
+            { k: "練習題", v: stats.practiceDone, s: stats.practiceDone ? "正確率 " + stats.accuracy + "%" : "去做幾題" },
+            { k: "目前等級", v: stats.level, s: stats.handsPlayed ? stats.handsPlayed + " 手實戰" : "持續精進" },
+            { k: "復盤次數", v: stats.replays, s: stats.mistakes ? "找到 " + stats.mistakes + " 處可改" : "—" },
           ].map((s, i) => (
             <div key={i} style={{
               padding: "8px 24px",
@@ -63,6 +64,27 @@ function PageHome({ go, stats }) {
           ))}
         </div>
       </div>
+
+      {/* 立即開打 */}
+      <Section num="00" title="立即開打" lede="想直接玩就從這裡開始 — 跟 AI 練手感，或開房間跟朋友連線對戰。">
+        <div className="grid-3">
+          <button className="card" onClick={() => go("table")} style={{ textAlign: "left", cursor: "pointer", borderLeft: "3px solid var(--gold)" }}>
+            <div className="row between mb-16"><div className="serif" style={{ fontSize: 19 }}>練習桌 · vs AI</div><span className="text-gold mono">→</span></div>
+            <div className="text-dim" style={{ fontSize: 13.5, lineHeight: 1.6 }}>單機跟三種風格的 AI 對手實戰，旁邊有即時勝率、GTO 教練與開池範圍表陪你練。</div>
+            <div className="row gap-8 mt-16"><Pill tone="gold">現金桌</Pill><Pill>錦標賽</Pill><Pill>即時教學</Pill></div>
+          </button>
+          <button className="card" onClick={() => go("multiplayer")} style={{ textAlign: "left", cursor: "pointer", borderLeft: "3px solid var(--good)" }}>
+            <div className="row between mb-16"><div className="serif" style={{ fontSize: 19 }}>多人對戰 · 線上</div><span className="text-gold mono">→</span></div>
+            <div className="text-dim" style={{ fontSize: 13.5, lineHeight: 1.6 }}>開房間拿房號給朋友，最多 9 人連線同桌。底牌只在你的裝置上看得到，可設密碼。</div>
+            <div className="row gap-8 mt-16"><Pill tone="good">跟朋友玩</Pill><Pill>房號加入</Pill><Pill>可設密碼</Pill></div>
+          </button>
+          <button className="card" onClick={() => go("practice")} style={{ textAlign: "left", cursor: "pointer" }}>
+            <div className="row between mb-16"><div className="serif" style={{ fontSize: 19 }}>情境決策題</div><span className="text-gold mono">→</span></div>
+            <div className="text-dim" style={{ fontSize: 13.5, lineHeight: 1.6 }}>不想開整局時，做幾題情境選擇題快速校準直覺，每題附勝率、EV 與 GTO 解析。</div>
+            <div className="row gap-8 mt-16"><Pill>翻牌前</Pill><Pill>翻後</Pill><Pill tone="gold">ICM</Pill></div>
+          </button>
+        </div>
+      </Section>
 
       {/* 學習路徑 */}
       <Section num="01" title="學習路徑" lede="按順序走完九個章節，搭配練習與復盤。每章 8-15 分鐘可消化。">

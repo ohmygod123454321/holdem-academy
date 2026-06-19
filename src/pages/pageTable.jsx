@@ -243,6 +243,7 @@ function PageTable() {
     const myActions = game.handHistory.filter(h => h.idx === game.seats.indexOf(human));
     setHandFeedback(buildFeedback(game, human, myActions));
     setShowCards(true);
+    if (window.Progress) window.Progress.addHand(1);
     // MTT: detect eliminations now so the banner / endscreen renders immediately
     if (tourney) {
       const tNext = detectEliminations(game, tourney);
@@ -260,6 +261,33 @@ function PageTable() {
     const acts = game.inputRequired;
     setBetAmount(Math.min(acts.maxRaise, Math.max(acts.minRaise, Math.round(game.pot * 0.66 + acts.toCall))));
   }, [game?.inputRequired]);
+
+  // Keyboard shortcuts: F fold · C check/call · R raise · Space/Enter next hand
+  useEffect(() => {
+    function onKey(e) {
+      const tag = (e.target && e.target.tagName) || "";
+      if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+      if (!game) return;
+      if (game.finished) {
+        if (e.key === " " || e.key === "Enter") { e.preventDefault(); startNextHand(); }
+        return;
+      }
+      const hIdx = game.seats.findIndex(s => s.isHuman);
+      const h = game.seats[hIdx];
+      const isMyTurn = game.toAct === hIdx && h && !h.folded && h.stack > 0 && game.inputRequired;
+      if (!isMyTurn) return;
+      const acts = game.inputRequired;
+      const k = e.key.toLowerCase();
+      let action = null;
+      if (k === "f") action = { type: "fold" };
+      else if (k === "c") action = acts.options.includes("check") ? { type: "check" }
+        : acts.options.includes("call") ? { type: "call" } : null;
+      else if (k === "r" && acts.options.includes("raise")) action = { type: "raise", amount: betAmount };
+      if (action) { e.preventDefault(); setGame({ ...PE.applyAction(game, hIdx, action) }); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [game, betAmount]);
 
   if (!game) {
     return <SetupScreen setup={setup} setSetup={setSetup} onStart={startNewGame} />;
@@ -312,30 +340,36 @@ function PageTable() {
 
           {/* Action panel */}
           <div className="card mt-24" style={{ padding: "20px 24px" }}>
+            <HandReadout human={human} game={game} />
             {game.finished ? (
               <div>
                 <div className="row between mb-16">
                   <div className="serif" style={{ fontSize: 22, fontWeight: 700 }}>
                     {game.winners?.map(w => game.seats[w.idx].name + " 贏 " + w.share + (w.reason ? " (" + w.reason + ")" : "")).join("、")}
                   </div>
-                  <button className="btn btn-primary" onClick={startNextHand}>下一手 →</button>
+                  <button className="btn btn-primary" onClick={startNextHand}>下一手 → <span className="mono text-faint" style={{ fontSize: 10 }}>(空白)</span></button>
                 </div>
                 {handFeedback && <HandReviewPanel game={game} fb={handFeedback} />}
               </div>
             ) : myTurn ? (
-              <ActionControls
-                acts={game.inputRequired}
-                pot={game.pot}
-                bb={game.bb}
-                stack={human.stack}
-                streetBet={human.streetBet}
-                betAmount={betAmount}
-                setBetAmount={setBetAmount}
-                onAction={(action) => {
-                  const next = PE.applyAction(game, humanIdx, action);
-                  setGame({ ...next });
-                }}
-              />
+              <>
+                <ActionControls
+                  acts={game.inputRequired}
+                  pot={game.pot}
+                  bb={game.bb}
+                  stack={human.stack}
+                  streetBet={human.streetBet}
+                  betAmount={betAmount}
+                  setBetAmount={setBetAmount}
+                  onAction={(action) => {
+                    const next = PE.applyAction(game, humanIdx, action);
+                    setGame({ ...next });
+                  }}
+                />
+                <div className="mono text-faint" style={{ fontSize: 10, marginTop: 12, letterSpacing: "0.04em" }}>
+                  鍵盤快捷： F 棄牌 · C 過牌/跟注 · R 加注 · 空白 下一手
+                </div>
+              </>
             ) : (
               <div className="row gap-16" style={{ minHeight: 56, alignItems: "center" }}>
                 <span className="mono text-faint">等待 {game.seats[game.toAct]?.name}…</span>
@@ -706,6 +740,34 @@ function SeatView({ seat, label, xPct, yPct, isToAct, showCards, isDealer }) {
 }
 function aiBadgeColor(ai) {
   return { gto: "var(--gold)", tight: "var(--info)", loose: "var(--bad)" }[ai] || "var(--fg-dim)";
+}
+
+// ----- Hand readout (always-on "what you have", for beginners) -----
+function HandReadout({ human, game }) {
+  if (!human || !human.hole) return null;
+  const preflop = game.street === "preflop" || (game.board || []).length < 3;
+  let label = "", sub = "";
+  if (preflop) {
+    const h = PEX && PEX.classifyHole ? PEX.classifyHole(human.hole) : null;
+    label = h ? h.code : human.hole.join(" ");
+    sub = h ? h.short : "起手牌";
+  } else {
+    const made = PEX && PEX.classifyMadeHand ? PEX.classifyMadeHand(human.hole, game.board) : null;
+    label = made ? made.label : "—";
+    sub = "目前牌力";
+  }
+  return (
+    <div className="row gap-12" style={{ alignItems: "center", marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid var(--line)" }}>
+      <div className="row gap-4">
+        {human.hole.map((c, i) => <PlayingCard key={i} card={c} size={32} />)}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div className="card-eyebrow">你的牌型</div>
+        <div className="serif" style={{ fontSize: 18, fontWeight: 700, color: "var(--gold)" }}>{label}</div>
+      </div>
+      <span className="mono text-faint" style={{ fontSize: 11, marginLeft: "auto" }}>{sub}</span>
+    </div>
+  );
 }
 
 // ----- Action controls -----
