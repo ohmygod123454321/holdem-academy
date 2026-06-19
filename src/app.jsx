@@ -136,6 +136,8 @@ function App() {
 
       <main className="main">{body}</main>
 
+      <AudioControl />
+
       <TweaksPanel title="視覺調整 · Tweaks">
         <TweakSection label="主題">
           <TweakRadio
@@ -157,6 +159,59 @@ function App() {
           />
         </TweakSection>
       </TweaksPanel>
+    </div>
+  );
+}
+
+function AudioControl() {
+  const S = window.Sound;
+  const [open, setOpen] = useState(false);
+  const [st, setSt] = useState(() => (S ? S.getState() : null));
+  if (!S) return null;
+  const refresh = () => setSt(S.getState());
+  function toggleMusic() { if (S.isPlaying()) S.stopMusic(); else S.playMusic(); refresh(); }
+  function pickTrack(id) { S.selectTrack(id); S.stopMusic(); S.playMusic(); refresh(); }
+  function toggleSfx() { S.setSfxOn(!st.sfxOn); if (!st.sfxOn) S.chip(); refresh(); }
+
+  return (
+    <div className="audio-dock">
+      {open && (
+        <div className="audio-panel card">
+          <div className="row between mb-12">
+            <span className="card-eyebrow">背景音樂</span>
+            <button className="btn btn-sm btn-ghost" onClick={toggleMusic}>{st.playing ? "⏸ 暫停" : "▶ 播放"}</button>
+          </div>
+          <div className="col gap-6 mb-12">
+            {S.tracks.map(t => (
+              <button key={t.id} onClick={() => pickTrack(t.id)}
+                className="audio-track"
+                style={{ borderColor: st.track === t.id ? "var(--gold)" : "var(--line)" }}>
+                <div className="row between">
+                  <span style={{ fontSize: 13, fontWeight: 600, color: st.track === t.id ? "var(--gold)" : "var(--cream)" }}>{t.name}</span>
+                  {st.track === t.id && st.playing && <span className="mono text-gold" style={{ fontSize: 10 }}>♪ 播放中</span>}
+                </div>
+                <div className="mono text-faint" style={{ fontSize: 10, marginTop: 2 }}>{t.desc}</div>
+              </button>
+            ))}
+          </div>
+          <label className="audio-row"><span>音樂音量</span>
+            <input type="range" min="0" max="1" step="0.05" defaultValue={st.musicVol}
+              onChange={e => S.setMusicVol(+e.target.value)} /></label>
+          <div className="row between mb-8" style={{ marginTop: 12 }}>
+            <span className="card-eyebrow">音效</span>
+            <button className="btn btn-sm btn-ghost" onClick={toggleSfx}>{st.sfxOn ? "✓ 開" : "關"}</button>
+          </div>
+          <label className="audio-row"><span>音效音量</span>
+            <input type="range" min="0" max="1" step="0.05" defaultValue={st.sfxVol}
+              onChange={e => { S.setSfxVol(+e.target.value); }} onMouseUp={() => S.chip()} /></label>
+          <div className="mono text-faint" style={{ fontSize: 10, marginTop: 10, lineHeight: 1.5 }}>
+            音樂為瀏覽器即時合成（無外部檔案）。點不同風格可即時試聽。
+          </div>
+        </div>
+      )}
+      <button className="audio-fab" onClick={() => { setOpen(o => !o); refresh(); }} title="音樂與音效">
+        {st && st.playing ? "♪" : "🎵"}
+      </button>
     </div>
   );
 }

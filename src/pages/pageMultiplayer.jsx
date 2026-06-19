@@ -145,7 +145,7 @@ function PageMultiplayer() {
       {phase === "game" && view && <GameScreen
         view={view} room={room} me={me}
         betAmount={betAmount} setBetAmount={setBetAmount}
-        onAction={(action) => send({ type: "action", action })}
+        onAction={(action) => { if (window.Sound) window.Sound.act(action); send({ type: "action", action }); }}
         onNextHand={nextHand}
         onRebuy={() => send({ type: "rebuy" })}
       />}

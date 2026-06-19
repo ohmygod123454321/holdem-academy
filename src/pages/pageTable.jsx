@@ -228,6 +228,7 @@ function PageTable() {
     setAiThinking(true);
     const t = setTimeout(() => {
       const action = PAI.aiDecide(game, game.toAct, seat.ai);
+      if (window.Sound) window.Sound.act(action);
       const next = PE.applyAction(game, game.toAct, action);
       setGame({ ...next });
       setAiThinking(false);
@@ -244,6 +245,10 @@ function PageTable() {
     setHandFeedback(buildFeedback(game, human, myActions));
     setShowCards(true);
     if (window.Progress) window.Progress.addHand(1);
+    if (window.Sound) {
+      const won = (game.winners || []).some(w => game.seats[w.idx] && game.seats[w.idx].isHuman);
+      if (won) window.Sound.win();
+    }
     // MTT: detect eliminations now so the banner / endscreen renders immediately
     if (tourney) {
       const tNext = detectEliminations(game, tourney);
@@ -283,7 +288,7 @@ function PageTable() {
       else if (k === "c") action = acts.options.includes("check") ? { type: "check" }
         : acts.options.includes("call") ? { type: "call" } : null;
       else if (k === "r" && acts.options.includes("raise")) action = { type: "raise", amount: betAmount };
-      if (action) { e.preventDefault(); setGame({ ...PE.applyAction(game, hIdx, action) }); }
+      if (action) { e.preventDefault(); if (window.Sound) window.Sound.act(action); setGame({ ...PE.applyAction(game, hIdx, action) }); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -362,6 +367,7 @@ function PageTable() {
                   betAmount={betAmount}
                   setBetAmount={setBetAmount}
                   onAction={(action) => {
+                    if (window.Sound) window.Sound.act(action);
                     const next = PE.applyAction(game, humanIdx, action);
                     setGame({ ...next });
                   }}
@@ -824,7 +830,7 @@ function ActionControls({ acts, pot, bb, stack, streetBet, betAmount, setBetAmou
 
       {acts.options.includes("raise") && (
         <div>
-          <div className="row between mb-8">
+          <div className="row between mb-8" style={{ flexWrap: "wrap", gap: 8 }}>
             <div className="row gap-4">
               {presets.map(p => (
                 <button key={p.label}
@@ -835,16 +841,26 @@ function ActionControls({ acts, pot, bb, stack, streetBet, betAmount, setBetAmou
                 </button>
               ))}
             </div>
-            <span className="mono text-gold" style={{ fontSize: 12 }}>{betAmount}</span>
+            {/* direct numeric entry */}
+            <div className="row gap-6" style={{ alignItems: "center" }}>
+              <span className="mono text-faint" style={{ fontSize: 10 }}>下注</span>
+              <input type="number" className="mp-input mp-input-sm"
+                value={betAmount}
+                min={acts.minRaise} max={acts.maxRaise} step={acts.bb || 1}
+                onChange={e => { const v = parseInt(e.target.value, 10); setBetAmount(isNaN(v) ? 0 : v); }}
+                onBlur={() => setBetAmount(Math.min(acts.maxRaise, Math.max(acts.minRaise, betAmount || acts.minRaise)))}
+                style={{ width: 96, textAlign: "right" }} />
+            </div>
           </div>
           <input type="range"
-            min={acts.minRaise} max={acts.maxRaise} value={betAmount}
+            min={acts.minRaise} max={acts.maxRaise}
+            value={Math.min(acts.maxRaise, Math.max(acts.minRaise, betAmount || acts.minRaise))}
             onChange={e => setBetAmount(parseInt(e.target.value, 10))}
             style={{ width: "100%", accentColor: "var(--gold)" }}
           />
           <div className="row between mt-8">
-            <span className="mono text-faint" style={{ fontSize: 10 }}>min {acts.minRaise}</span>
-            <span className="mono text-faint" style={{ fontSize: 10 }}>max {acts.maxRaise}</span>
+            <span className="mono text-faint" style={{ fontSize: 10 }}>min {acts.minRaise.toLocaleString()}</span>
+            <span className="mono text-faint" style={{ fontSize: 10 }}>max {acts.maxRaise.toLocaleString()}</span>
           </div>
         </div>
       )}
