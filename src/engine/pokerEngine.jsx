@@ -206,6 +206,8 @@ function startHand(state) {
   s.board = [];
   s.pot = 0;
   s.pots = [];
+  s.pendingRun = null;
+  s.runs = null;
   s.street = "preflop";
   s.currentBet = 0;
   s.minRaise = s.bb;
@@ -408,7 +410,15 @@ function advance(state) {
   const allMatched = nonAllin.every(p => p.actedThisStreet && p.streetBet === state.currentBet);
 
   if (nonAllin.length === 0 || allMatched) {
-    // everyone is all-in, or all bets are settled — go to next street / showdown
+    // All bets are settled. If this is an all-in situation with cards still to
+    // come (≥2 players left and at most one can still act), pause for a
+    // "run it once / twice / three times" choice instead of auto-running.
+    if (live.length >= 2 && nonAllin.length <= 1 && state.board.length < 5) {
+      state.pendingRun = { toCome: 5 - state.board.length };
+      state.toAct = -1;
+      state.inputRequired = null;
+      return state;
+    }
     return nextStreet(state);
   }
 
@@ -449,19 +459,14 @@ function nextStreet(state) {
   return state;
 }
 
-function showdown(state) {
-  const live = state.seats
-    .map((p, i) => ({ p, i }))
-    .filter(x => x.p.inHand && !x.p.folded);
-
-  // compute side pots
+// Build the (side) pot structure from how much each player committed.
+function buildPots(state) {
+  const live = state.seats.map((p, i) => ({ p, i })).filter(x => x.p.inHand && !x.p.folded);
   const sortedBy = live.slice().sort((a, b) => a.p.committed - b.p.committed);
   const allCommitted = state.seats.filter(p => p.committed > 0)
-    .map(p => ({ p, committed: p.committed, idx: state.seats.indexOf(p) }));
-  // build pots
+    .map(p => ({ committed: p.committed, idx: state.seats.indexOf(p) }));
   const pots = [];
   let prev = 0;
-  const eligibleSet = sortedBy.map(x => x.i);
   const remainingByIdx = {};
   for (const c of allCommitted) remainingByIdx[c.idx] = c.committed;
   const handLevels = [...new Set(sortedBy.map(x => x.p.committed))].sort((a, b) => a - b);
@@ -470,42 +475,70 @@ function showdown(state) {
     const eligibleHere = sortedBy.filter(x => x.p.committed >= lvl).map(x => x.i);
     for (const idx in remainingByIdx) {
       const take = Math.min(lvl - prev, remainingByIdx[idx]);
-      if (take > 0) {
-        amount += take;
-        remainingByIdx[idx] -= take;
-      }
+      if (take > 0) { amount += take; remainingByIdx[idx] -= take; }
     }
     if (amount > 0) pots.push({ amount, eligible: eligibleHere });
     prev = lvl;
   }
-  // any remaining (folded above max live) — give to highest pot
   let extra = 0;
   for (const idx in remainingByIdx) extra += remainingByIdx[idx];
   if (extra > 0 && pots.length) pots[pots.length - 1].amount += extra;
-
-  // evaluate each live player's best 7-card hand
-  const ranked = live.map(x => ({
-    idx: x.i,
-    seat: x.p,
-    rank: bestOf7([...x.p.hole.map(parseCard), ...state.board.map(parseCard)]),
-  }));
-
-  const winnersOut = [];
-  for (const pot of pots) {
-    const candidates = ranked.filter(r => pot.eligible.includes(r.idx));
-    if (!candidates.length) continue;
-    let best = candidates[0].rank;
-    for (const c of candidates) if (compareRanks(c.rank, best) > 0) best = c.rank;
-    const tied = candidates.filter(c => compareRanks(c.rank, best) === 0);
-    const share = Math.floor(pot.amount / tied.length);
-    const remainder = pot.amount - share * tied.length;
-    tied.forEach((t, i) => {
-      const give = share + (i < remainder ? 1 : 0);
-      winnersOut.push({ idx: t.idx, share: give, rank: t.rank, reason: rankName(t.rank) });
-    });
-  }
-  return endHand(state, winnersOut);
+  return pots;
 }
+
+// Deal the remaining board `times` times (run it once / twice / three times),
+// splitting each pot evenly across the runs. Cards are drawn sequentially from
+// the deck so no card repeats between runs. times=1 is a normal showdown.
+function runBoard(state, times) {
+  times = Math.max(1, Math.min(3, (times | 0) || 1));
+  state.pendingRun = null;
+  const live = state.seats.map((p, i) => ({ p, i })).filter(x => x.p.inHand && !x.p.folded);
+  const pots = buildPots(state);
+  const need = 5 - state.board.length;
+  const base = state.board.slice();
+  const award = {};
+  const runs = [];
+
+  for (let r = 0; r < times; r++) {
+    const board = base.slice();
+    for (let k = 0; k < need; k++) board.push(state.deck.pop());
+    const pb = board.map(parseCard);
+    const ranked = live.map(x => ({ idx: x.i, rank: bestOf7([...x.p.hole.map(parseCard), ...pb]) }));
+    const winnersOut = [];
+    for (const pot of pots) {
+      const potRunAmount = Math.floor(pot.amount / times) + (r < (pot.amount % times) ? 1 : 0);
+      if (potRunAmount <= 0) continue;
+      const cands = ranked.filter(rk => pot.eligible.includes(rk.idx));
+      if (!cands.length) continue;
+      let best = cands[0].rank;
+      for (const c of cands) if (compareRanks(c.rank, best) > 0) best = c.rank;
+      const tied = cands.filter(c => compareRanks(c.rank, best) === 0);
+      const share = Math.floor(potRunAmount / tied.length);
+      const rem = potRunAmount - share * tied.length;
+      tied.forEach((t, i) => {
+        const give = share + (i < rem ? 1 : 0);
+        award[t.idx] = (award[t.idx] || 0) + give;
+        winnersOut.push({ idx: t.idx, share: give, reason: rankName(t.rank) });
+      });
+    }
+    runs.push({ board, winners: winnersOut });
+  }
+
+  for (const idx in award) state.seats[+idx].stack += award[idx];
+  state.runs = runs;
+  state.board = runs[0].board; // primary board for single-board UI
+  state.winners = Object.keys(award).map(idx => ({
+    idx: +idx, share: award[idx],
+    reason: times > 1 ? ("發 " + times + " 次合計") : (runs[0].winners.find(w => w.idx === +idx) || {}).reason,
+  }));
+  state.street = "showdown";
+  state.finished = true;
+  state.toAct = -1;
+  state.inputRequired = null;
+  return state;
+}
+
+function showdown(state) { return runBoard(state, 1); }
 
 function endHand(state, winners) {
   // distribute
@@ -555,7 +588,7 @@ const PokerEngineAPI = {
   eval5, bestOf7, compareRanks, rankName,
   equity, handCode, preflopStrength,
   newGame, startHand, applyAction, availableActions,
-  positionLabels, nextActiveIdx,
+  positionLabels, nextActiveIdx, runBoard,
 };
 
 // Dual environment: browser loads this as a plain <script> (sets window),

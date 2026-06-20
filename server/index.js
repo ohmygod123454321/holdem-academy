@@ -38,6 +38,21 @@ function progressAndBroadcast(room) {
   while (room.autoActIfDisconnected() && guard++ < 20) { /* keep folding the absent */ }
   broadcastState(room);
   maybeScheduleAutoNext(room);
+  maybeSchedulePendingRun(room);
+}
+
+// If an all-in run choice is pending and nobody picks, default to one run.
+const RUN_FALLBACK_MS = 20000;
+function maybeSchedulePendingRun(room) {
+  if (room.runTimer) return;
+  if (!room.game || !room.game.pendingRun) return;
+  room.runTimer = setTimeout(() => {
+    room.runTimer = null;
+    if (room.game && room.game.pendingRun) { room.runIt(1); progressAndBroadcast(room); }
+  }, RUN_FALLBACK_MS);
+}
+function clearRunTimer(room) {
+  if (room.runTimer) { clearTimeout(room.runTimer); room.runTimer = null; }
 }
 
 // When a hand is over and auto-next is on, deal the next hand after a short
@@ -98,6 +113,7 @@ function handle(ws, msg) {
     case "rebuy":        return onRebuy(ws);
     case "showCard":     return onShowCard(ws, msg);
     case "setAutoNext":  return onSetAutoNext(ws, msg);
+    case "runItTwice":   return onRunItTwice(ws, msg);
     case "leave":        return onLeave(ws);
     case "ping":         return send(ws, { type: "pong" });
     default:             return err(ws, "未知訊息: " + msg.type, "UNKNOWN");
@@ -166,6 +182,14 @@ function onShowCard(ws, msg) {
   if (room.showCard(ws.id, msg.index)) broadcastState(room);
 }
 
+function onRunItTwice(ws, msg) {
+  const room = currentRoom(ws);
+  if (!room) return err(ws, "你不在任何房間", "NO_ROOM");
+  if (ws.id !== room.hostId) return err(ws, "只有房主能選擇發牌次數", "NOT_HOST");
+  clearRunTimer(room);
+  if (room.runIt(Math.max(1, Math.min(3, msg.times | 0)))) progressAndBroadcast(room);
+}
+
 function onSetAutoNext(ws, msg) {
   const room = currentRoom(ws);
   if (!room) return err(ws, "你不在任何房間", "NO_ROOM");
@@ -204,6 +228,7 @@ function removeFromRoom(ws, room) {
   ws.roomCode = null;
   if (room.players.length === 0) {
     clearAutoNext(room);
+    clearRunTimer(room);
     rooms.delete(room.code);
     return;
   }

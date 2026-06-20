@@ -150,6 +150,7 @@ function PageMultiplayer() {
         onRebuy={() => send({ type: "rebuy" })}
         onShowCard={(index) => send({ type: "showCard", index })}
         onSetAutoNext={(on) => send({ type: "setAutoNext", on })}
+        onRunItTwice={(times) => send({ type: "runItTwice", times })}
       />}
     </div>
   );
@@ -260,7 +261,7 @@ function LobbyScreen({ room, me, onStart }) {
   );
 }
 
-function GameScreen({ view, room, me, betAmount, setBetAmount, onAction, onNextHand, onRebuy, onShowCard, onSetAutoNext }) {
+function GameScreen({ view, room, me, betAmount, setBetAmount, onAction, onNextHand, onRebuy, onShowCard, onSetAutoNext, onRunItTwice }) {
   const game = viewToGame(view);
   const myTurn = !view.finished && view.toAct === view.mySeat && view.legalActions;
   const mySeat = view.seats[view.mySeat];
@@ -290,8 +291,42 @@ function GameScreen({ view, room, me, betAmount, setBetAmount, onAction, onNextH
 
         <div className="card mt-24" style={{ padding: "20px 24px" }}>
           {mySeat && mySeat.hole && mySeat.hole[0] && <HandReadout human={mySeat} game={game} />}
-          {view.finished ? (
+          {view.pendingRun ? (
             <div>
+              <div className="serif" style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>全下對決！還有 {view.pendingRun.toCome} 張公牌</div>
+              {me.isHost ? (
+                <>
+                  <div className="text-dim" style={{ fontSize: 13, marginBottom: 12 }}>選擇要發幾次牌分池減少運氣成分：</div>
+                  <div className="row gap-10" style={{ flexWrap: "wrap" }}>
+                    {[1, 2, 3].map(t => (
+                      <button key={t} className={"btn btn-sm" + (t === 1 ? " btn-primary" : "")} onClick={() => onRunItTwice(t)}>
+                        {t === 1 ? "發一次" : t === 2 ? "發兩次" : "發三次"}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="mono text-faint" style={{ fontSize: 12 }}>等待房主選擇發牌次數…</div>
+              )}
+            </div>
+          ) : view.finished ? (
+            <div>
+              {view.runs && view.runs.length > 1 && (
+                <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid var(--line)" }}>
+                  <div className="card-eyebrow mb-8">發了 {view.runs.length} 次</div>
+                  <div className="col gap-8">
+                    {view.runs.map((run, ri) => (
+                      <div key={ri} className="row gap-8" style={{ alignItems: "center", flexWrap: "wrap" }}>
+                        <span className="mono text-faint" style={{ fontSize: 11, width: 44 }}>第 {ri + 1} 次</span>
+                        <div className="row gap-4">{run.board.map((c, i) => <PlayingCard key={i} card={c} size={26} />)}</div>
+                        <span className="mono" style={{ fontSize: 11, color: "var(--gold)" }}>
+                          {[...new Set(run.winners.map(w => view.seats[w.idx] && view.seats[w.idx].name))].join("、")} 贏
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="row between" style={{ flexWrap: "wrap", gap: 12 }}>
                 <div className="serif" style={{ fontSize: 20, fontWeight: 700 }}>
                   {(view.winners || []).map(w => view.seats[w.idx].name + " 贏 " + w.share + (w.reason ? "（" + w.reason + "）" : "")).join("、")}

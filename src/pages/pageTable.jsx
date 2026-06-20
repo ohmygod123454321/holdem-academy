@@ -220,6 +220,11 @@ function PageTable() {
     });
   }
 
+  // All-in with cards to come: single-player just runs it once.
+  useEffect(() => {
+    if (game && game.pendingRun && !game.finished) setGame({ ...PE.runBoard(game, 1) });
+  }, [game]);
+
   // AI auto-play
   useEffect(() => {
     if (!game || game.finished) return;

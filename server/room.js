@@ -31,6 +31,7 @@ class Room {
     this.shown = {};   // { seatIndex: [bool, bool] } voluntarily-shown hole cards
     this.autoNext = true; // auto-deal next hand after a short delay (default on)
     this.autoTimer = null;
+    this.runTimer = null; // fallback timer for the run-it-N choice
     this.config = {
       sb: opts.sb || 10,
       bb: opts.bb || 20,
@@ -121,6 +122,13 @@ class Room {
     return true;
   }
 
+  // Resolve an all-in run-it-N choice: deal the remaining board `times` times.
+  runIt(times) {
+    if (!this.game || !this.game.pendingRun) return false;
+    this.game = PE.runBoard(this.game, times);
+    return true;
+  }
+
   // A player voluntarily shows (toggles) one of their hole cards after the hand.
   showCard(playerId, index) {
     const g = this.game;
@@ -183,6 +191,8 @@ class Room {
       toAct: g.toAct,
       finished: g.finished,
       showdown: isShowdown,
+      pendingRun: g.pendingRun || null,
+      runs: g.runs || null,
       winners: g.winners,
       labels: PE.positionLabels(g),
       seats,
