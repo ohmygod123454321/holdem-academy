@@ -37,6 +37,26 @@ function progressAndBroadcast(room) {
   let guard = 0;
   while (room.autoActIfDisconnected() && guard++ < 20) { /* keep folding the absent */ }
   broadcastState(room);
+  maybeScheduleAutoNext(room);
+}
+
+// When a hand is over and auto-next is on, deal the next hand after a short
+// delay (gives everyone time to see the result and show cards).
+const AUTO_NEXT_MS = 6000;
+function maybeScheduleAutoNext(room) {
+  if (room.autoTimer) return;
+  if (!room.game || !room.game.finished || !room.autoNext) return;
+  room.autoTimer = setTimeout(() => {
+    room.autoTimer = null;
+    if (!rooms.has(room.code)) return;
+    if (room.game && room.game.finished && room.players.some(p => p.connected)) {
+      room.nextHand();
+      progressAndBroadcast(room);
+    }
+  }, AUTO_NEXT_MS);
+}
+function clearAutoNext(room) {
+  if (room.autoTimer) { clearTimeout(room.autoTimer); room.autoTimer = null; }
 }
 
 // -------- HTTP server (health check for Render) + WS upgrade --------
@@ -76,6 +96,8 @@ function handle(ws, msg) {
     case "action":       return onAction(ws, msg);
     case "nextHand":     return onNextHand(ws, msg);
     case "rebuy":        return onRebuy(ws);
+    case "showCard":     return onShowCard(ws, msg);
+    case "setAutoNext":  return onSetAutoNext(ws, msg);
     case "leave":        return onLeave(ws);
     case "ping":         return send(ws, { type: "pong" });
     default:             return err(ws, "未知訊息: " + msg.type, "UNKNOWN");
@@ -127,6 +149,7 @@ function onNextHand(ws) {
   if (!room) return err(ws, "你不在任何房間", "NO_ROOM");
   if (ws.id !== room.hostId) return err(ws, "只有房主能發下一手", "NOT_HOST");
   if (room.game && !room.game.finished) return err(ws, "本手還沒結束", "HAND_ACTIVE");
+  clearAutoNext(room);
   room.nextHand();
   progressAndBroadcast(room);
 }
@@ -135,6 +158,22 @@ function onRebuy(ws) {
   const room = currentRoom(ws);
   if (!room) return err(ws, "你不在任何房間", "NO_ROOM");
   if (room.rebuy(ws.id)) broadcastState(room);
+}
+
+function onShowCard(ws, msg) {
+  const room = currentRoom(ws);
+  if (!room) return err(ws, "你不在任何房間", "NO_ROOM");
+  if (room.showCard(ws.id, msg.index)) broadcastState(room);
+}
+
+function onSetAutoNext(ws, msg) {
+  const room = currentRoom(ws);
+  if (!room) return err(ws, "你不在任何房間", "NO_ROOM");
+  if (ws.id !== room.hostId) return err(ws, "只有房主能調整自動下一手", "NOT_HOST");
+  room.autoNext = !!msg.on;
+  if (!room.autoNext) clearAutoNext(room);
+  broadcastState(room);
+  maybeScheduleAutoNext(room);
 }
 
 function onLeave(ws) {
@@ -164,6 +203,7 @@ function removeFromRoom(ws, room) {
   room.dropPlayer(ws.id);
   ws.roomCode = null;
   if (room.players.length === 0) {
+    clearAutoNext(room);
     rooms.delete(room.code);
     return;
   }

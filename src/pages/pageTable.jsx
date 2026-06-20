@@ -690,7 +690,9 @@ function SeatView({ seat, label, xPct, yPct, isToAct, showCards, isDealer }) {
       <div className="row center gap-4" style={{ minHeight: 50, marginBottom: 6 }}>
         {seat.hole && !isFolded ? (
           showCards
-            ? seat.hole.map((c, i) => <PlayingCard key={i} card={c} size="var(--seat-card-w)" />)
+            ? seat.hole.map((c, i) => c
+                ? <PlayingCard key={i} card={c} size="var(--seat-card-w)" />
+                : <div key={i} className="pcard back" style={{ "--w": "var(--seat-card-w)" }} />)
             : <>
                 <div className="pcard back" style={{ "--w": "var(--seat-back-w)" }} />
                 <div className="pcard back" style={{ "--w": "var(--seat-back-w)" }} />

@@ -28,6 +28,9 @@ class Room {
     this.passwordHash = password ? hashPw(password) : null;
     this.players = []; // { id, name, ws, connected }
     this.game = null;
+    this.shown = {};   // { seatIndex: [bool, bool] } voluntarily-shown hole cards
+    this.autoNext = true; // auto-deal next hand after a short delay (default on)
+    this.autoTimer = null;
     this.config = {
       sb: opts.sb || 10,
       bb: opts.bb || 20,
@@ -71,10 +74,12 @@ class Room {
     });
     g = PE.startHand(g);
     this.game = g;
+    this.shown = {};
   }
 
   nextHand() {
     if (!this.game) return;
+    this.shown = {};
     this.game = PE.startHand(this.game);
   }
 
@@ -116,14 +121,42 @@ class Room {
     return true;
   }
 
+  // A player voluntarily shows (toggles) one of their hole cards after the hand.
+  showCard(playerId, index) {
+    const g = this.game;
+    if (!g || !g.finished) return false;
+    const idx = this.seatIndexOf(playerId);
+    if (idx < 0) return false;
+    const seat = g.seats[idx];
+    if (!seat.hole || seat.folded) return false;
+    if (index !== 0 && index !== 1) return false;
+    if (!this.shown[idx]) this.shown[idx] = [false, false];
+    this.shown[idx][index] = !this.shown[idx][index];
+    return true;
+  }
+
   // Tailored, privacy-safe view for one player.
   viewFor(playerId) {
     const g = this.game;
     const myIdx = this.seatIndexOf(playerId);
     if (!g) return { started: false, mySeat: myIdx };
 
+    // A true showdown (≥2 players saw it through) auto-reveals; an uncontested
+    // win does NOT — that winner may choose to show via showCard().
+    const nonFolded = g.seats.filter(s => s.inHand && !s.folded).length;
+    const isShowdown = g.finished && nonFolded >= 2;
+
     const seats = g.seats.map((s, i) => {
-      const reveal = i === myIdx || (g.finished && !s.folded && s.inHand);
+      const shown = this.shown[i] || [false, false];
+      let hole = null;
+      if (s.hole) {
+        hole = s.hole.map((c, j) => {
+          const revealCard = i === myIdx
+            || (isShowdown && !s.folded && s.inHand)   // showdown
+            || (!!shown[j] && !s.folded);              // voluntarily shown
+          return revealCard ? c : null;                // null → hidden (face down)
+        });
+      }
       return {
         name: s.name,
         stack: s.stack,
@@ -134,8 +167,7 @@ class Room {
         committed: s.committed,
         lastAction: s.lastAction,
         connected: this.players[i] ? this.players[i].connected : false,
-        // opponents' hole cards are NEVER sent until showdown
-        hole: s.hole ? (reveal ? s.hole : [null, null]) : null,
+        hole,
       };
     });
 
@@ -150,10 +182,12 @@ class Room {
       dealerIdx: g.dealerIdx,
       toAct: g.toAct,
       finished: g.finished,
+      showdown: isShowdown,
       winners: g.winners,
       labels: PE.positionLabels(g),
       seats,
       mySeat: myIdx,
+      myShown: this.shown[myIdx] ? this.shown[myIdx].slice() : [false, false],
     };
     if (!g.finished && g.toAct === myIdx) {
       view.legalActions = PE.availableActions(g, myIdx);
@@ -166,6 +200,7 @@ class Room {
       code: this.code,
       hostId: this.hostId,
       hasPassword: this.hasPassword(),
+      autoNext: this.autoNext,
       started: this.started,
       config: this.config,
       players: this.players.map(p => ({ id: p.id, name: p.name, connected: p.connected })),

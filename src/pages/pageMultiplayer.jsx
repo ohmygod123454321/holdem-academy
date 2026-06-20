@@ -148,6 +148,8 @@ function PageMultiplayer() {
         onAction={(action) => { if (window.Sound) window.Sound.act(action); send({ type: "action", action }); }}
         onNextHand={nextHand}
         onRebuy={() => send({ type: "rebuy" })}
+        onShowCard={(index) => send({ type: "showCard", index })}
+        onSetAutoNext={(on) => send({ type: "setAutoNext", on })}
       />}
     </div>
   );
@@ -258,11 +260,16 @@ function LobbyScreen({ room, me, onStart }) {
   );
 }
 
-function GameScreen({ view, room, me, betAmount, setBetAmount, onAction, onNextHand, onRebuy }) {
+function GameScreen({ view, room, me, betAmount, setBetAmount, onAction, onNextHand, onRebuy, onShowCard, onSetAutoNext }) {
   const game = viewToGame(view);
   const myTurn = !view.finished && view.toAct === view.mySeat && view.legalActions;
   const mySeat = view.seats[view.mySeat];
   const busted = mySeat && mySeat.stack <= 0;
+  const autoNext = room && room.autoNext;
+  // can voluntarily show only when the hand is over, I didn't fold, and it
+  // wasn't a real showdown (where my cards are already public)
+  const canShow = view.finished && mySeat && !mySeat.folded && mySeat.hole && mySeat.hole[0] && !view.showdown;
+  const myShown = view.myShown || [false, false];
   const startStack = (room && room.config && room.config.startingStack) || 0;
   return (
     <div className="poker-grid">
@@ -284,13 +291,47 @@ function GameScreen({ view, room, me, betAmount, setBetAmount, onAction, onNextH
         <div className="card mt-24" style={{ padding: "20px 24px" }}>
           {mySeat && mySeat.hole && mySeat.hole[0] && <HandReadout human={mySeat} game={game} />}
           {view.finished ? (
-            <div className="row between" style={{ flexWrap: "wrap", gap: 12 }}>
-              <div className="serif" style={{ fontSize: 20, fontWeight: 700 }}>
-                {(view.winners || []).map(w => view.seats[w.idx].name + " 贏 " + w.share + (w.reason ? "（" + w.reason + "）" : "")).join("、")}
+            <div>
+              <div className="row between" style={{ flexWrap: "wrap", gap: 12 }}>
+                <div className="serif" style={{ fontSize: 20, fontWeight: 700 }}>
+                  {(view.winners || []).map(w => view.seats[w.idx].name + " 贏 " + w.share + (w.reason ? "（" + w.reason + "）" : "")).join("、")}
+                </div>
+                <div className="row gap-8" style={{ alignItems: "center" }}>
+                  {me.isHost && (
+                    <button className="btn btn-sm btn-ghost" onClick={() => onSetAutoNext(!autoNext)}
+                      style={{ borderColor: autoNext ? "var(--gold)" : "var(--line)", color: autoNext ? "var(--gold)" : "var(--cream)" }}>
+                      {autoNext ? "✓ 自動發牌" : "自動發牌"}
+                    </button>
+                  )}
+                  {me.isHost
+                    ? <button className="btn btn-primary btn-sm" onClick={onNextHand}>{autoNext ? "立即下一手 →" : "發下一手 →"}</button>
+                    : <span className="mono text-faint" style={{ fontSize: 12 }}>{autoNext ? "自動發下一手中…" : "等待房主發下一手…"}</span>}
+                </div>
               </div>
-              {me.isHost
-                ? <button className="btn btn-primary" onClick={onNextHand}>發下一手 →</button>
-                : <span className="mono text-faint">等待房主發下一手…</span>}
+
+              {canShow && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
+                  <div className="card-eyebrow mb-8">秀牌給對手（可選）</div>
+                  <div className="row gap-10" style={{ alignItems: "center", flexWrap: "wrap" }}>
+                    {mySeat.hole.map((c, i) => (
+                      <button key={i} onClick={() => onShowCard(i)}
+                        title={myShown[i] ? "點一下收回" : "點一下秀出這張"}
+                        style={{
+                          padding: 4, borderRadius: 8, cursor: "pointer", background: "transparent",
+                          border: "2px solid " + (myShown[i] ? "var(--good)" : "var(--line-bright)"),
+                        }}>
+                        <PlayingCard card={c} size={40} />
+                        <div className="mono" style={{ fontSize: 9, marginTop: 2, color: myShown[i] ? "var(--good)" : "var(--fg-faint)" }}>
+                          {myShown[i] ? "✓ 已秀" : "點擊秀出"}
+                        </div>
+                      </button>
+                    ))}
+                    <span className="mono text-faint" style={{ fontSize: 11, marginLeft: 4 }}>
+                      贏了不必亮牌；可選擇秀一張或兩張給對手看。
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           ) : myTurn ? (
             <ActionControls
